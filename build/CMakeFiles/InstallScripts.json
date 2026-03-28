@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/notfatnotfunny/libreband/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

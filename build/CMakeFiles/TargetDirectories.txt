@@ -1,0 +1,3 @@
+/home/notfatnotfunny/libreband/build/CMakeFiles/libreband.dir
+/home/notfatnotfunny/libreband/build/CMakeFiles/edit_cache.dir
+/home/notfatnotfunny/libreband/build/CMakeFiles/rebuild_cache.dir
