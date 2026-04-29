@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
     g_mutex_init(&state.recorded_lock);
     g_mutex_init(&state.log_lock);
 
-    state.app = adw_application_new("com.example.miband10sppviewer", G_APPLICATION_DEFAULT_FLAGS);
+    state.app = adw_application_new("me.nf2x.libreband", G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(state.app, "activate", G_CALLBACK(mib10_activate), &state);
     g_signal_connect(state.app, "shutdown", G_CALLBACK(mib10_app_shutdown), &state);
 

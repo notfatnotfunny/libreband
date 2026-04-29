@@ -1,5 +1,5 @@
 #ifndef MIB10_APP_H
-#define MIB10_APP_H
+#define MIB10_APPH
 
 #include <stdint.h>
 #include <bluetooth/bluetooth.h>

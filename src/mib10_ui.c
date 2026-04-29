@@ -247,7 +247,6 @@ static void on_refresh_clicked(GtkButton *button, gpointer user_data) {
     (void)button;
     AppState *state = user_data;
     if (state->auth_initialized && state->sock_fd >= 0) {
-        append_log(state, "Refresh: repeating Gadgetbridge-style fetch (user info, configs, realtime, battery, history)…");
         gb_run_post_auth_data_fetch(state);
         return;
     }
@@ -1512,41 +1511,6 @@ static void draw_recorded_chart(GtkDrawingArea *area, cairo_t *cr, int width, in
     }
     chart_submit_caption(state, lbl);
 }
-/* Min-width 0 for flex children; chart frame + caption tuned for light/dark. */
-static void mib10_install_tight_layout_css(GdkDisplay *display) {
-    static gboolean provider_installed;
-    if (provider_installed) {
-        return;
-    }
-    GtkCssProvider *css = gtk_css_provider_new();
-    gtk_css_provider_load_from_string(css,
-                                      ".mib10-shrink { min-width: 0; }\n"
-                                      ".mib10-chart-day-combo { min-width: 0; }\n"
-                                      ".mib10-chart-stat-combo { min-width: 0; }\n"
-                                      ".mib10-chart-frame { padding: 0; }\n"
-                                      ".mib10-chart-frame > border { border-radius: 10px; }\n"
-                                      ".mib10-caption { font-size: 0.9rem; opacity: 0.9; "
-                                      "min-height: 2.75em; margin-top: 6px; }\n"
-                                      ".mib10-dashboard > * { margin-left: 2px; margin-right: 2px; }\n"
-                                      ".mib10-status { font-weight: 500; font-size: 0.95rem; "
-                                      "padding: 6px 4px; }\n");
-    gtk_style_context_add_provider_for_display(display, GTK_STYLE_PROVIDER(css),
-                                               GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-    g_object_unref(css);
-    provider_installed = TRUE;
-}
-
-static void mib10_allow_width_shrink(GtkWidget *w) {
-    if (w == NULL) {
-        return;
-    }
-    gtk_widget_add_css_class(w, "mib10-shrink");
-}
-
-static void mib10_apply_chart_combo_classes(GtkWidget *day_combo, GtkWidget *stat_combo) {
-    gtk_widget_add_css_class(day_combo, "mib10-chart-day-combo");
-    gtk_widget_add_css_class(stat_combo, "mib10-chart-stat-combo");
-}
 
 static GtkWidget *mib10_create_compact_gauge(const char *title_text, const char *value_initial,
                                              GtkWidget **value_label_out, GtkWidget **bar_out) {
@@ -1580,10 +1544,10 @@ void mib10_activate(GApplication *application, gpointer user_data) {
         g_warning("Gadgetbridge-compatible database could not be opened; samples will not be persisted.");
     }
     state->window = adw_application_window_new(GTK_APPLICATION(application));
-    gtk_window_set_title(GTK_WINDOW(state->window), "Mi Band 10 SPP Viewer");
+    gtk_window_set_title(GTK_WINDOW(state->window), "Libreband");
     gtk_window_set_default_size(GTK_WINDOW(state->window), 720, 560);
     gtk_widget_add_css_class(state->window, "mib10-app");
-    mib10_install_tight_layout_css(gtk_widget_get_display(state->window));
+    // mib10_install_tight_layout_css(gtk_widget_get_display(state->window));
 
     GtkWidget *toolbar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     gtk_widget_set_margin_top(toolbar, 12);
@@ -1591,7 +1555,7 @@ void mib10_activate(GApplication *application, gpointer user_data) {
     gtk_widget_set_margin_start(toolbar, 12);
     gtk_widget_set_margin_end(toolbar, 12);
 
-    state->btn_refresh = gtk_button_new_with_label("Refresh");
+    state->btn_refresh = gtk_button_new_with_label("Refresh!");
     g_signal_connect(state->btn_refresh, "clicked", G_CALLBACK(on_refresh_clicked), state);
 
     gtk_box_append(GTK_BOX(toolbar), state->btn_refresh);
@@ -1605,17 +1569,14 @@ void mib10_activate(GApplication *application, gpointer user_data) {
     gtk_widget_set_margin_top(state->label_status, 4);
     gtk_widget_set_margin_bottom(state->label_status, 6);
     gtk_widget_add_css_class(state->label_status, "mib10-status");
-    mib10_allow_width_shrink(state->label_status);
 
     GtkWidget *top_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 14);
     state->stats_row = top_row;
     gtk_widget_set_margin_start(top_row, 10);
     gtk_widget_set_margin_end(top_row, 10);
     gtk_widget_set_margin_bottom(top_row, 8);
-    mib10_allow_width_shrink(top_row);
 
     GtkWidget *heart_card = gtk_frame_new(NULL);
-    mib10_allow_width_shrink(heart_card);
     GtkWidget *heart_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
     gtk_widget_set_margin_top(heart_box, 10);
     gtk_widget_set_margin_bottom(heart_box, 10);
@@ -1626,7 +1587,6 @@ void mib10_activate(GApplication *application, gpointer user_data) {
     gtk_frame_set_child(GTK_FRAME(heart_card), heart_box);
 
     GtkWidget *gauge_card = gtk_frame_new(NULL);
-    mib10_allow_width_shrink(gauge_card);
     GtkWidget *gauge_grid = gtk_grid_new();
     gtk_grid_set_row_spacing(GTK_GRID(gauge_grid), 6);
     gtk_grid_set_column_spacing(GTK_GRID(gauge_grid), 10);
@@ -1661,11 +1621,9 @@ void mib10_activate(GApplication *application, gpointer user_data) {
     gtk_widget_set_margin_start(recorded_box, 8);
     gtk_widget_set_margin_end(recorded_box, 8);
     gtk_widget_set_margin_bottom(recorded_box, 4);
-    mib10_allow_width_shrink(recorded_box);
 
     GtkWidget *recorded_controls = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
     gtk_widget_set_hexpand(recorded_controls, TRUE);
-    mib10_allow_width_shrink(recorded_controls);
     GtkStringList *day_strings = gtk_string_list_new(NULL);
     state->recorded_day_dropdown = gtk_drop_down_new(G_LIST_MODEL(day_strings), NULL);
     g_object_unref(day_strings);
@@ -1682,7 +1640,7 @@ void mib10_activate(GApplication *application, gpointer user_data) {
 
     gtk_widget_set_hexpand(state->recorded_day_dropdown, TRUE);
     gtk_widget_set_hexpand(state->recorded_stat_dropdown, TRUE);
-    mib10_apply_chart_combo_classes(state->recorded_day_dropdown, state->recorded_stat_dropdown);
+    // mib10_apply_chart_combo_classes(state->recorded_day_dropdown, state->recorded_stat_dropdown);
     gtk_drop_down_set_selected(GTK_DROP_DOWN(state->recorded_stat_dropdown), (guint)REC_STAT_HEART_RATE);
     g_signal_connect(state->recorded_day_dropdown, "notify::selected-item", G_CALLBACK(on_recorded_day_selected), state);
     g_signal_connect(state->recorded_stat_dropdown, "notify::selected-item", G_CALLBACK(on_recorded_stat_selected), state);
@@ -1692,7 +1650,6 @@ void mib10_activate(GApplication *application, gpointer user_data) {
 
     state->recorded_chart = gtk_drawing_area_new();
     gtk_widget_set_size_request(state->recorded_chart, -1, 180);
-    mib10_allow_width_shrink(state->recorded_chart);
     gtk_widget_set_can_focus(state->recorded_chart, FALSE);
     gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(state->recorded_chart), draw_recorded_chart, state, NULL);
     GtkEventController *motion = gtk_event_controller_motion_new();
@@ -1712,7 +1669,6 @@ void mib10_activate(GApplication *application, gpointer user_data) {
 
     GtkWidget *chart_frame = gtk_frame_new(NULL);
     gtk_widget_add_css_class(chart_frame, "mib10-chart-frame");
-    mib10_allow_width_shrink(chart_frame);
     gtk_frame_set_child(GTK_FRAME(chart_frame), state->recorded_chart);
 
     state->recorded_chart_label = gtk_label_new("Recorded history chart: no data yet.");
@@ -1722,7 +1678,6 @@ void mib10_activate(GApplication *application, gpointer user_data) {
     gtk_label_set_lines(GTK_LABEL(state->recorded_chart_label), 3);
     gtk_widget_set_hexpand(state->recorded_chart_label, TRUE);
     gtk_widget_add_css_class(state->recorded_chart_label, "mib10-caption");
-    mib10_allow_width_shrink(state->recorded_chart_label);
 
     gtk_box_append(GTK_BOX(recorded_box), recorded_controls);
     gtk_box_append(GTK_BOX(recorded_box), chart_frame);
@@ -1739,7 +1694,6 @@ void mib10_activate(GApplication *application, gpointer user_data) {
     gtk_widget_set_margin_end(scroll, 12);
     gtk_widget_set_margin_bottom(scroll, 12);
     gtk_widget_set_vexpand(scroll, TRUE);
-    mib10_allow_width_shrink(scroll);
     gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(scroll), 0);
 
     state->listbox_devices = gtk_list_box_new();
@@ -1753,7 +1707,6 @@ void mib10_activate(GApplication *application, gpointer user_data) {
     gtk_widget_set_margin_end(device_scroll, 12);
     gtk_widget_set_margin_bottom(device_scroll, 12);
     gtk_widget_set_vexpand(device_scroll, TRUE);
-    mib10_allow_width_shrink(device_scroll);
     gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(device_scroll), 0);
 
     GtkWidget *pairing_page = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
@@ -1783,7 +1736,6 @@ void mib10_activate(GApplication *application, gpointer user_data) {
 
     GtkWidget *dashboard_page = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_widget_add_css_class(dashboard_page, "mib10-dashboard");
-    mib10_allow_width_shrink(dashboard_page);
     gtk_widget_set_hexpand(top_row, TRUE);
     gtk_widget_set_vexpand(top_row, FALSE);
     gtk_widget_set_hexpand(recorded_box, TRUE);
@@ -1795,10 +1747,8 @@ void mib10_activate(GApplication *application, gpointer user_data) {
     gtk_box_append(GTK_BOX(dashboard_page), scroll);
 
     state->stack = gtk_stack_new();
-    mib10_allow_width_shrink(state->stack);
     state->page_pairing = pairing_page;
     state->page_dashboard = dashboard_page;
-    mib10_allow_width_shrink(pairing_page);
     gtk_stack_add_named(GTK_STACK(state->stack), pairing_page, "pairing");
     gtk_stack_add_named(GTK_STACK(state->stack), dashboard_page, "dashboard");
     gtk_stack_set_visible_child(GTK_STACK(state->stack), pairing_page);
@@ -1810,3 +1760,35 @@ void mib10_activate(GApplication *application, gpointer user_data) {
 
     populate_device_list(state);
 }
+
+
+
+// /* Min-width 0 for flex children; chart frame + caption tuned for light/dark. */
+// static void mib10_install_tight_layout_css(GdkDisplay *display) {
+//     static gboolean provider_installed;
+//     if (provider_installed) {
+//         return;
+//     }
+//     GtkCssProvider *css = gtk_css_provider_new();
+//     gtk_css_provider_load_from_string(css,
+//                                       ".mib10-shrink { min-width: 0; }\n"
+//                                       ".mib10-chart-day-combo { min-width: 0; }\n"
+//                                       ".mib10-chart-stat-combo { min-width: 0; }\n"
+//                                       ".mib10-chart-frame { padding: 0; }\n"
+//                                       ".mib10-chart-frame > border { border-radius: 10px; }\n"
+//                                       ".mib10-caption { font-size: 0.9rem; opacity: 0.9; "
+//                                       "min-height: 2.75em; margin-top: 6px; }\n"
+//                                       ".mib10-dashboard > * { margin-left: 2px; margin-right: 2px; }\n"
+//                                       ".mib10-status { font-weight: 500; font-size: 0.95rem; "
+//                                       "padding: 6px 4px; }\n");
+//     gtk_style_context_add_provider_for_display(display, GTK_STYLE_PROVIDER(css),
+//                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+//     g_object_unref(css);
+//     provider_installed = TRUE;
+// }
+
+
+// static void mib10_apply_chart_combo_classes(GtkWidget *day_combo, GtkWidget *stat_combo) {
+//     gtk_widget_add_css_class(day_combo, "mib10-chart-day-combo");
+//     gtk_widget_add_css_class(stat_combo, "mib10-chart-stat-combo");
+// }
